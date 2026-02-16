@@ -131,8 +131,8 @@
                     <p class="text-gray-500 text-sm mt-2 font-medium italic">Acceso con Matrícula</p>
                 </div>
                 <div class="space-y-5">
-                    <input id="login-user" type="text" placeholder="6523150059" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-utch-light-green transition-all text-white">
-                    <input id="login-pass" type="password" placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-utch-light-green transition-all text-white">
+                    <input id="login-user" type="text" placeholder="123" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-utch-light-green transition-all text-white">
+                    <input id="login-pass" type="password" placeholder="•••" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-utch-light-green transition-all text-white">
                     <button onclick="attemptLogin()" class="w-full bg-utch-green hover:bg-utch-light-green text-white font-bold py-4 rounded-2xl transition-all active:scale-95">
                         Entrar a mi Portal
                     </button>
@@ -876,7 +876,7 @@ function sendCV() {
         // LOGIC
         function attemptLogin() {
             const user = document.getElementById('login-user').value;
-            if (user === '6523150059') {
+            if (user === '123') {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-wrapper').classList.remove('hidden');
                 initApp();
