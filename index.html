@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTCH Connect - Raymundo Herrera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --utch-green: #1a7a40;
+            --utch-light-green: #2ecc71;
+            --utch-dark: #0a0a0a;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--utch-dark);
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .nav-item.active {
+            background: rgba(26, 122, 64, 0.15);
+            color: var(--utch-light-green);
+            border-right: 3px solid var(--utch-light-green);
+        }
+        .animate-fade {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Psychology status colors */
+        .status-today { background: rgba(186, 230, 253, 0.2); border-left: 4px solid #38bdf8; }
+        .status-pending { background: rgba(187, 247, 208, 0.2); border-left: 4px solid #4ade80; }
+        .status-past { background: rgba(fee2e2, 0.2); border-left: 4px solid #f87171; }
+        .status-canceled { background: rgba(229, 231, 235, 0.2); border-left: 4px solid #9ca3af; }
+
+        .schedule-cell {
+        min-height: 85px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.08);
+        transition: all 0.25s ease;}
+
+        .schedule-cell:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);}
+
+        .schedule-card {
+            min-height: 65px;   /* antes 88px */
+    padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.06);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.25s ease;
+    }
+
+    .schedule-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+}
+    .schedule-hour {
+        font-size: 12px;
+        font-weight: 900;
+        color: #6b7280;}
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- MODAL DE REFERENCIA -->
+    <div id="reference-modal" class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="glass w-full max-w-lg p-8 rounded-[2.5rem] animate-fade">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 id="modal-title" class="text-xl font-black text-white uppercase">Nombre del Trámite</h3>
+                    <p class="text-utch-light-green font-bold text-sm mt-1" id="modal-cost">$0.00</p>
+                </div>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-white transition-colors">
+                    <i data-lucide="x-circle"></i>
+                </button>
+            </div>
+            <div class="space-y-6">
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Información Requerida / Motivo</p>
+                    <textarea id="extra-info" placeholder="Escribe aquí si necesitas que el documento incluya información específica..." class="w-full bg-transparent border-none outline-none text-sm text-gray-300 min-h-[100px] resize-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase">Convenio BBVA</p>
+                        <p class="text-sm font-black text-white">01508105</p>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase">Referencia</p>
+                        <p class="text-sm font-black text-white italic">Se genera al imprimir</p>
+                    </div>
+                </div>
+                <button onclick="confirmGeneration()" id="modal-btn" class="w-full bg-utch-green hover:bg-utch-light-green text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3">
+                    <i data-lucide="printer" class="w-5 h-5"></i>
+                    Generar Referencia PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-[100] bg-[#0a0a0a] flex items-center justify-center p-6">
+        <div class="glass w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-utch-green/20 rounded-full blur-3xl"></div>
+            <div class="relative z-10">
+                <div class="text-center mb-10">
+                    <img src="https://proyecta.utch.edu.mx/public/images/logopyverde.png" class="h-16 mx-auto mb-6" alt="Logo UTCH">
+                    <h1 class="text-3xl font-black">Portal <span class="text-utch-light-green">Connect</span></h1>
+                    <p class="text-gray-500 text-sm mt-2 font-medium italic">Acceso con Matrícula</p>
+                </div>
+                <div class="space-y-5">
+                    <input id="login-user" type="text" placeholder="6523150059" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-utch-light-green transition-all text-white">
+                    <input id="login-pass" type="password" placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-utch-light-green transition-all text-white">
+                    <button onclick="attemptLogin()" class="w-full bg-utch-green hover:bg-utch-light-green text-white font-bold py-4 rounded-2xl transition-all active:scale-95">
+                        Entrar a mi Portal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP WRAPPER -->
+    <div id="app-wrapper" class="hidden h-full flex overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-72 border-r border-white/5 flex flex-col glass z-50">
+            <div class="p-8">
+                <img src="https://proyecta.utch.edu.mx/public/images/logopyverde.png" class="h-12 mx-auto" alt="UTCH Logo">
+            </div>
+
+            <nav class="flex-1 px-4 space-y-1 overflow-y-auto scroll-hide">
+                <button onclick="showTab('inicio')" class="nav-item active flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all group" id="nav-inicio">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Inicio</span>
+                </button>
+                <button onclick="showTab('perfil')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-perfil">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Mi Expediente</span>
+                </button>
+                <button onclick="showTab('horario')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-horario">
+                    <i data-lucide="calendar-range" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Mi Horario</span>
+                </button>
+                <button onclick="showTab('referencias')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-referencias">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Referencias</span>
+                </button>
+                <div class="h-px bg-white/5 my-4 mx-4"></div>
+                <button onclick="showTab('becas')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-becas">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Becas</span>
+                </button>
+                <button onclick="showTab('empleo')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-empleo">
+                    <i data-lucide="briefcase" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Empleo y Prácticas</span>
+                </button>
+                <button onclick="showTab('psicologia')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-psicologia">
+                    <i data-lucide="brain" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Psicología</span>
+                </button>
+                <button onclick="showTab('cuenta')" class="nav-item flex items-center gap-4 w-full p-3.5 rounded-2xl transition-all text-gray-400 group" id="nav-cuenta">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                    <span class="font-bold text-sm">Estado de Cuenta</span>
+                </button>
+            </nav>
+
+            <div class="p-6 border-t border-white/5">
+                <div class="bg-white/5 p-4 rounded-[2rem] flex items-center gap-4">
+                    <img src="https://i.pinimg.com/1200x/2e/3e/18/2e3e18b6de3639ab39594ffcb34eeb0a.jpg" class="w-10 h-10 rounded-full border-2 border-utch-light-green object-cover">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-black truncate">Raymundo Herrera</p>
+                        <p class="text-[10px] text-utch-light-green font-bold uppercase">6523150059</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 overflow-y-auto bg-[#0a0a0a] relative">
+            <header class="sticky top-0 z-40 glass px-10 py-6 flex justify-between items-center">
+                <h2 id="tab-title" class="text-2xl font-black tracking-tight">Inicio</h2>
+                <div class="flex items-center gap-6">
+                    <!-- School Platforms Icons -->
+                    <div class="flex items-center gap-4 px-4 py-2 bg-utch-green/10 rounded-full border border-utch-green/20">
+                        <a title="Moodle BIS" href="#" class="text-utch-light-green hover:scale-110 transition-transform"><i data-lucide="home" class="w-5 h-5"></i></a>
+                        <a title="Teams" href="#" class="text-utch-light-green hover:scale-110 transition-transform"><i data-lucide="mail" class="w-5 h-5"></i></a>
+                        <a title="Plataforma UTCH" href="#" class="text-utch-light-green hover:scale-110 transition-transform"><i data-lucide="book-open" class="w-5 h-5"></i></a>
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="bell" class="w-6 h-6 text-gray-400 hover:text-white cursor-pointer"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold text-white">2</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-10 max-w-7xl mx-auto">
+                
+                <!-- TABS CONTENT -->
+                
+                <div id="tab-inicio" class="tab-content active animate-fade">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 space-y-8">
+                            <!-- Hero Banner -->
+                            <div class="rounded-[2.5rem] bg-gradient-to-br from-utch-green to-black p-12 relative overflow-hidden shadow-2xl">
+                                <div class="relative z-10">
+                                    <span class="bg-white/10 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">Estatus Actual: Regular</span>
+                                    <h1 class="text-5xl font-black mt-6 leading-tight">Hola, <br><span class="text-utch-light-green">Raymundo Javier Herrera</span></h1>
+                                    <p class="text-gray-300 mt-4 max-w-sm">Tienes <span class="text-white font-bold">98% de asistencia</span>. Tu promedio de 9.4</p>
+                                    <button onclick="showTab('horario')" class="mt-8 bg-white text-black px-8 py-3 rounded-2xl font-black text-sm hover:scale-105 transition-transform active:scale-95">Ver mi siguiente clase</button>
+                                </div>
+                                <i data-lucide="graduation-cap" class="absolute -right-10 -bottom-10 w-80 h-80 text-white/5 -rotate-12"></i>
+                            </div>
+
+                            <!-- News Feed -->
+                            <div class="space-y-6">
+                                <h3 class="text-xl font-black text-white">Novedades del Campus</h3>
+                                <div class="glass p-8 rounded-[2rem] hover:bg-white/[0.04] transition-all group cursor-default">
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <div class="w-12 h-12 rounded-2xl bg-utch-green/10 flex items-center justify-center">
+                                            <i data-lucide="megaphone" class="text-utch-green"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-sm text-white">Dirección Académica</p>
+                                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Publicado hace 2 horas</p>
+                                        </div>
+                                    </div>
+                                    <h4 class="text-2xl font-black mb-3 text-white">Evaluaciones Docentes: Abiertas</h4>
+                                    <p class="text-gray-400 text-sm leading-relaxed mb-6">Tu opinión es fundamental para mejorar la calidad educativa. El proceso es 100% anónimo y ayuda a que las clases de Desarrollo y Gestión de Software sigan siendo de primer nivel.</p>
+                                    <button class="text-utch-light-green font-bold text-sm flex items-center gap-2">Completar ahora <i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar Widgets -->
+                        <div class="space-y-8">
+                            <div class="glass p-8 rounded-[2.5rem]">
+                                <h3 class="font-black text-xs uppercase tracking-widest text-gray-500 mb-6">Información Escolar</h3>
+                                <div class="space-y-6 text-white">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Carrera</p>
+                                        <p class="text-sm font-bold">Desarrollo y Gestión de Software</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Grupo</p>
+                                            <p class="text-sm font-bold">IDGSBIS72N</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Turno</p>
+                                            <p class="text-sm font-bold">Nocturno</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Tutor</p>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            <img src="https://i.pinimg.com/736x/d7/b6/a3/d7b6a3a3e5aedde95151464d14da144e.jpg" class="w-8 h-8 rounded-lg">
+                                            <p class="text-xs font-bold">Dr. Oscar Javier Valenzuela</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass p-8 rounded-[2.5rem] border-utch-green/30">
+                                <h3 class="font-black text-xs uppercase tracking-widest text-gray-500 mb-6">Acciones Rápidas</h3>
+                                <div class="grid grid-cols-2 gap-4 text-white">
+                                    <button class="bg-white/5 p-4 rounded-2xl flex flex-col items-center gap-3 hover:bg-white/10 transition-all border border-white/5">
+                                        <i data-lucide="shield-check" class="text-utch-light-green"></i>
+                                        <span class="text-[10px] font-bold">Mi IMSS</span>
+                                    </button>
+                                    <button class="bg-white/5 p-4 rounded-2xl flex flex-col items-center gap-3 hover:bg-white/10 transition-all border border-white/5">
+                                        <i data-lucide="clipboard-list" class="text-utch-light-green"></i>
+                                        <span class="text-[10px] font-bold">Boletas</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MI EXPEDIENTE (Updated) -->
+                <div id="tab-perfil" class="hidden tab-content animate-fade space-y-10">
+                    <!-- Información Básica -->
+                    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 glass p-8 rounded-[2.5rem] text-center">
+                            <img src="https://i.pinimg.com/1200x/2e/3e/18/2e3e18b6de3639ab39594ffcb34eeb0a.jpg" class="w-32 h-32 rounded-[2rem] mx-auto border-4 border-utch-green mb-6">
+                            <h3 class="text-2xl font-black italic tracking-tighter">Raymundo Javier Herrera Quezada</h3>
+                            <p class="text-utch-light-green font-bold text-xs uppercase mt-2">Matrícula: 6523150059</p>
+                            <div class="mt-6 pt-6 border-t border-white/5 space-y-4 text-left">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase">CURP</p>
+                                    <p class="text-xs font-semibold">HEQR040911HCHRZYA3</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase">Domicilio</p>
+                                    <p class="text-xs font-semibold leading-relaxed">5A # 9613 COLONIA GRANJAS CERRO GRANDE C.P. 31065</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 font-bold uppercase">Celular</p>
+                                        <p class="text-xs font-semibold">6145139417</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 font-bold uppercase">Casa</p>
+                                        <p class="text-xs font-semibold">6142088197</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 glass p-10 rounded-[2.5rem] flex flex-col justify-between">
+                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-8">Información Escolar</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Carrera</p>
+                                    <p class="text-lg font-bold">Desarrollo y Gestión de Software</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Tutor Académico</p>
+                                    <p class="text-lg font-bold">Dr. Oscar Javier Valenzuela González</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Situación</p>
+                                    <span class="bg-utch-green/20 text-utch-light-green px-3 py-1 rounded-lg text-xs font-bold uppercase">Ing</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Periodo Actual</p>
+                                    <p class="text-lg font-bold">ENERO - ABRIL 2026</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Plan de Estudios</p>
+                                    <p class="text-xs font-bold leading-relaxed">(Inicio: 2021 | Actual: 2026)</p>
+                                </div>
+                                <div class="flex gap-8">
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Grupo</p>
+                                        <p class="text-lg font-bold">IDGSBIS72N</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Turno</p>
+                                        <p class="text-lg font-bold">Nocturno</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-10 p-6 bg-white/5 rounded-3xl border border-white/5 flex items-center gap-4">
+                                <i data-lucide="info" class="text-utch-light-green"></i>
+                                <p class="text-xs text-gray-400">Tu expediente se encuentra al día. Para cualquier cambio de domicilio acude a servicios escolares.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Historial Académico -->
+                    <section class="space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-black italic tracking-tighter">Historial de Calificaciones</h3>
+                            <div class="flex gap-4 text-[10px] font-black uppercase">
+                                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-green-500/50"></div> Ordinario</div>
+                                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-yellow-500/50"></div> Recuperación</div>
+                                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-red-500/50"></div> Extraordinario</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabs de Periodos -->
+                        <div class="flex gap-2 overflow-x-auto pb-2 scroll-hide" id="period-tabs-container"></div>
+                        <div class="glass rounded-[2rem] overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-white/5">
+                                    <tr>
+                                        <th class="px-8 py-5 text-[10px] font-black uppercase text-gray-500">Materia</th>
+                                        <th class="px-4 py-5 text-center text-[10px] font-black uppercase text-gray-500">U1</th>
+                                        <th class="px-4 py-5 text-center text-[10px] font-black uppercase text-gray-500">U2</th>
+                                        <th class="px-4 py-5 text-center text-[10px] font-black uppercase text-gray-500">U3</th>
+                                        <th class="px-4 py-5 text-center text-[10px] font-black uppercase text-gray-500 text-utch-light-green">Asist.</th>
+                                        <th class="px-8 py-5 text-center text-[10px] font-black uppercase text-gray-500">Final</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grades-history-body" class="divide-y divide-white/5 text-white"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+<!-- BECAS -->
+<div id="tab-becas" class="hidden tab-content animate-fade space-y-8">
+
+    <!-- BOTONES SUPERIORES -->
+    <div class="flex gap-4 mb-6">
+        <button class="px-6 py-2 bg-white text-black rounded-xl font-bold text-xs uppercase">
+            Convocatorias
+        </button>
+        <button class="px-6 py-2 bg-white/5 text-gray-400 rounded-xl font-bold text-xs uppercase hover:bg-white/10 transition">
+            Becas Obtenidas
+        </button>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+
+        <!-- BECA 1 -->
+        <div class="glass p-6 rounded-3xl h-[260px] flex flex-col justify-between hover:scale-[1.03] transition duration-300">
+            <div>
+                <h4 class="text-gray-400 font-black text-[9px] uppercase tracking-widest mb-2">
+                    Ene-Abr-26
+                </h4>
+                <h3 class="text-lg font-black text-white uppercase">
+                    Descuento Convenio 20%
+                </h3>
+
+                <div class="h-px bg-white/5 my-3"></div>
+
+                <div class="space-y-1 text-[11px] text-gray-400">
+                    <div class="flex justify-between">
+                        <span>Vigencia:</span>
+                        <span class="text-white">08 Dic - 13 Ene</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Servicio:</span>
+                        <span class="text-white">0 hrs</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Límite:</span>
+                        <span class="text-white">08 Dic</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-white/5 flex items-center justify-between">
+                <span class="text-[9px] font-bold text-red-400 uppercase italic">
+                    Sin Registro
+                </span>
+                <button class="bg-white/5 p-2 rounded-lg hover:bg-white/10 transition">
+                    <i data-lucide="file-text" class="w-3 h-3"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- BECA 2 -->
+        <div class="glass p-6 rounded-3xl h-[260px] flex flex-col justify-between hover:scale-[1.03] transition duration-300">
+            <div>
+                <h4 class="text-gray-400 font-black text-[9px] uppercase tracking-widest mb-2">
+                    Ene-Abr-26
+                </h4>
+                <h3 class="text-lg font-black text-white uppercase">
+                    Beca Alimenticia
+                </h3>
+
+                <div class="h-px bg-white/5 my-3"></div>
+
+                <div class="space-y-1 text-[11px] text-gray-400">
+                    <div class="flex justify-between">
+                        <span>Vigencia:</span>
+                        <span class="text-white">08 Ene - 20 Ene</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Servicio:</span>
+                        <span class="text-white">20 hrs</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Límite:</span>
+                        <span class="text-white">27 Mar</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-white/5 flex items-center justify-between">
+                <span class="text-[9px] font-bold text-yellow-400 uppercase italic">
+                    Últimos Lugares
+                </span>
+                <button class="bg-white/5 p-2 rounded-lg hover:bg-white/10 transition">
+                    <i data-lucide="file-text" class="w-3 h-3"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- BECA 3 -->
+        <div class="glass p-6 rounded-3xl h-[260px] flex flex-col justify-between hover:scale-[1.03] transition duration-300">
+            <div>
+                <h4 class="text-gray-400 font-black text-[9px] uppercase tracking-widest mb-2">
+                    Ene-Abr-26
+                </h4>
+                <h3 class="text-lg font-black text-white uppercase">
+                    Beca Académica 50%
+                </h3>
+
+                <div class="h-px bg-white/5 my-3"></div>
+
+                <div class="space-y-1 text-[11px] text-gray-400">
+                    <div class="flex justify-between">
+                        <span>Vigencia:</span>
+                        <span class="text-white">05 Ene - 15 Ene</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Servicio:</span>
+                        <span class="text-white">30 hrs</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Límite:</span>
+                        <span class="text-white">30 Abr</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-white/5 flex items-center justify-between">
+                <span class="text-[9px] font-bold text-green-400 uppercase italic">
+                    Abierta
+                </span>
+                <button class="bg-white/5 p-2 rounded-lg hover:bg-white/10 transition">
+                    <i data-lucide="file-text" class="w-3 h-3"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+                <!-- EMPLEO Y PRÁCTICAS -->
+                <!-- ============================= -->
+<!-- EMPLEO Y PRÁCTICAS -->
+<!-- ============================= -->
+
+<div id="tab-empleo" class="hidden tab-content animate-fade space-y-8">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="jobs-list">
+
+        <!-- IBM -->
+        <div class="glass p-8 rounded-[2rem] border-l-4 border-utch-light-green">
+            <div class="flex gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-xl text-utch-light-green">IBM</div>
+                <div class="flex-1">
+                    <h4 class="text-xs font-bold text-utch-light-green uppercase">Estadía Profesional</h4>
+                    <h3 class="text-xl font-black text-white">Fullstack Developer Jr.</h3>
+                    <p class="text-gray-400 text-xs mt-2 italic">Modalidad Híbrida • Chihuahua, Chih.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">Node.js</span>
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">React</span>
+                    </div>
+                    <button onclick="openJobModal('ibm')" class="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                        Ver convocatoria
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Softtek -->
+        <div class="glass p-8 rounded-[2rem] border-l-4 border-blue-400">
+            <div class="flex gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-xl text-blue-400">SK</div>
+                <div class="flex-1">
+                    <h4 class="text-xs font-bold text-blue-400 uppercase">Vacante de Trabajo</h4>
+                    <h3 class="text-xl font-black text-white">Ingeniero de Sistemas</h3>
+                    <p class="text-gray-400 text-xs mt-2 italic">Tiempo Completo • Chihuahua</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">Networking</span>
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">Linux</span>
+                    </div>
+                    <button onclick="openJobModal('softtek')" class="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                        Ver convocatoria
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oracle -->
+        <div class="glass p-8 rounded-[2rem] border-l-4 border-red-400">
+            <div class="flex gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-xl text-red-400">OR</div>
+                <div class="flex-1">
+                    <h4 class="text-xs font-bold text-red-400 uppercase">Vacante Internacional</h4>
+                    <h3 class="text-xl font-black text-white">Backend Developer</h3>
+                    <p class="text-gray-400 text-xs mt-2 italic">Remoto • Tiempo Completo</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">Java</span>
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">Spring Boot</span>
+                    </div>
+                    <button onclick="openJobModal('oracle')" class="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                        Ver convocatoria
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Google -->
+        <div class="glass p-8 rounded-[2rem] border-l-4 border-yellow-400">
+            <div class="flex gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-xl text-yellow-400">GO</div>
+                <div class="flex-1">
+                    <h4 class="text-xs font-bold text-yellow-400 uppercase">Programa de Prácticas</h4>
+                    <h3 class="text-xl font-black text-white">Frontend Intern</h3>
+                    <p class="text-gray-400 text-xs mt-2 italic">Remoto • 6 meses</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">HTML</span>
+                        <span class="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold">Tailwind</span>
+                    </div>
+                    <button onclick="openJobModal('google')" class="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                        Ver convocatoria
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div id="jobModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+    <div class="bg-[#111] w-[90%] max-w-2xl p-10 rounded-3xl relative">
+        <button onclick="closeJobModal()" class="absolute top-4 right-4 text-gray-400 text-xl">✕</button>
+
+        <h2 id="modalTitle" class="text-2xl font-black mb-4 text-white"></h2>
+        <p id="modalDescription" class="text-gray-400 text-sm mb-6"></p>
+
+        <div class="space-y-4">
+            <input type="file" id="cvFile" class="w-full bg-white/5 p-3 rounded-xl text-xs text-white">
+
+            <button onclick="sendCV()" class="w-full py-3 bg-utch-light-green text-black font-bold rounded-xl">
+                Enviar CV
+            </button>
+
+            <button onclick="sendEmail()" class="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-white">
+                Enviar correo de interesado
+            </button>
+        </div>
+    </div>
+</div>
+
+                <!-- PSICOLOGÍA -->
+                <div id="tab-psicologia" class="hidden tab-content animate-fade space-y-8">
+                    <div class="glass overflow-hidden rounded-[2rem]">
+                        <div class="bg-blue-900/40 px-8 py-4 border-b border-white/10 flex justify-between items-center">
+                            <h3 class="font-black text-sm uppercase tracking-widest">Citas Personales Programadas</h3>
+                            <button class="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                        </div>
+                        <table class="w-full text-left">
+                            <thead class="bg-white/5"><tr class="text-[10px] font-black uppercase text-gray-500"><th class="px-8 py-5">Color</th><th class="px-4 py-5">Fecha</th><th class="px-4 py-5">Hora</th><th class="px-4 py-5">Activa</th><th class="px-8 py-5">Nota cancelación</th></tr></thead>
+                            <tbody class="divide-y divide-white/5 text-sm">
+                                <tr class="status-today">
+                                    <td class="px-8 py-4"><div class="w-4 h-4 rounded-sm bg-blue-400/30"></div></td>
+                                    <td class="px-4 py-4 font-bold">2026/01/13</td>
+                                    <td class="px-4 py-4">10:00 am</td>
+                                    <td class="px-4 py-4 text-utch-light-green font-bold uppercase text-[10px]">Activa</td>
+                                    <td class="px-8 py-4 italic text-gray-500">--</td>
+                                </tr>
+                                <tr class="status-canceled">
+                                    <td class="px-8 py-4"><div class="w-4 h-4 rounded-sm bg-gray-500/30"></div></td>
+                                    <td class="px-4 py-4 font-bold">2025/02/04</td>
+                                    <td class="px-4 py-4">11:00 am</td>
+                                    <td class="px-4 py-4 text-gray-500 font-bold uppercase text-[10px]">Cancelada</td>
+                                    <td class="px-8 py-4 text-xs">No se presentó</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Legend -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-3 rounded-xl bg-blue-100/10 border border-blue-400/20 text-center text-[10px] font-black uppercase text-blue-300">La Cita es hoy</div>
+                        <div class="p-3 rounded-xl bg-green-100/10 border border-green-400/20 text-center text-[10px] font-black uppercase text-green-300">La Cita aún no sucede</div>
+                        <div class="p-3 rounded-xl bg-red-100/10 border border-red-400/20 text-center text-[10px] font-black uppercase text-red-300">La Cita ya pasó</div>
+                        <div class="p-3 rounded-xl bg-gray-100/10 border border-gray-400/20 text-center text-[10px] font-black uppercase text-gray-400">Cita Cancelada</div>
+                    </div>
+                    <button class="w-full py-4 bg-utch-green hover:bg-utch-light-green text-white font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 mt-4">
+                        <i data-lucide="plus" class="w-5 h-5"></i> Agendar nueva cita
+                    </button>
+                </div>
+
+                <!-- ESTADO DE CUENTA -->
+                <div id="tab-cuenta" class="hidden tab-content animate-fade space-y-10">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-green-500 p-8 rounded-[2rem] shadow-xl shadow-green-900/20">
+                            <div class="flex justify-between items-start mb-6"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+                            <h4 class="text-4xl font-black italic">$0.00</h4>
+                            <p class="text-[10px] font-black uppercase tracking-widest mt-2 opacity-80">Saldo Actual</p>
+                        </div>
+                        <div class="bg-orange-500 p-8 rounded-[2rem] shadow-xl shadow-orange-900/20 text-white">
+                            <div class="flex justify-between items-start mb-6"><i data-lucide="file-minus" class="w-6 h-6"></i></div>
+                            <h4 class="text-4xl font-black italic">$3,957.00</h4>
+                            <p class="text-[10px] font-black uppercase tracking-widest mt-2 opacity-80">Total Cargos</p>
+                        </div>
+                        <div class="bg-blue-500 p-8 rounded-[2rem] shadow-xl shadow-blue-900/20">
+                            <div class="flex justify-between items-start mb-6"><i data-lucide="hand-coins" class="w-6 h-6"></i></div>
+                            <h4 class="text-4xl font-black italic">$3,957.00</h4>
+                            <p class="text-[10px] font-black uppercase tracking-widest mt-2 opacity-80">Total Abonos</p>
+                        </div>
+                    </div>
+                    <div class="glass rounded-[2rem] overflow-hidden">
+                        <div class="bg-blue-900/40 px-8 py-4 border-b border-white/10 flex gap-4">
+                            <button class="px-4 py-2 bg-white/10 rounded-lg text-xs font-black uppercase"><i data-lucide="file-text" class="inline w-3 h-3 mr-2"></i> Estado de Cuenta ING</button>
+                            <button class="px-4 py-2 bg-white/5 rounded-lg text-xs font-black uppercase"><i data-lucide="dollar-sign" class="inline w-3 h-3 mr-2"></i> Todos los Pagos</button>
+                        </div>
+                        <table class="w-full text-left">
+                            <thead class="bg-white/5 text-[10px] font-black uppercase text-gray-500"><tr><th class="px-8 py-4">Fecha</th><th class="px-4 py-4">Concepto</th><th class="px-4 py-4 text-center">Tipo</th><th class="px-4 py-4 text-right">Cargos</th><th class="px-4 py-4 text-right">Abonos</th><th class="px-8 py-4 text-right">Saldo</th></tr></thead>
+                            <tbody class="divide-y divide-white/5 text-xs">
+                                <tr>
+                                    <td class="px-8 py-4 text-gray-400">2026-01-01</td>
+                                    <td class="px-4 py-4 font-bold">CUOTA INSCRIPCIÓN ING BIS ENE-ABR 26</td>
+                                    <td class="px-4 py-4 text-center"><span class="px-2 py-0.5 bg-green-500 rounded text-[9px] font-black">CARGO</span></td>
+                                    <td class="px-4 py-4 text-right">$3,957.00</td>
+                                    <td class="px-4 py-4 text-right">--</td>
+                                    <td class="px-8 py-4 text-right">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-8 py-4 text-gray-400">2025-12-19</td>
+                                    <td class="px-4 py-4 font-bold">CUOTA INSCRIPCIÓN INGENIERÍA</td>
+                                    <td class="px-4 py-4 text-center"><span class="px-2 py-0.5 bg-blue-500 rounded text-[9px] font-black">ABONO</span></td>
+                                    <td class="px-4 py-4 text-right">--</td>
+                                    <td class="px-4 py-4 text-right">$3,687.00</td>
+                                    <td class="px-8 py-4 text-right font-black">$0.00</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-white/5 font-black">
+                                <tr class="text-right"><td colspan="3" class="px-4 py-4">Total</td><td class="px-4 py-4">$3,957.00</td><td class="px-4 py-4">$3,957.00</td><td class="px-8 py-4 text-utch-light-green">$0.00</td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- HORARIO -->
+                    <div id="tab-horario" class="hidden tab-content animate-fade">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-3xl font-black tracking-tight italic">Enero - Abril 2026</h3>
+                            <p class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">Ingeniería de Software • Grupo 72N</p>
+                        </div>
+                        <button class="bg-white/5 px-6 py-3 rounded-2xl text-xs font-black border border-white/10 flex items-center gap-2 hover:bg-white/10">
+                            <i data-lucide="download" class="w-4 h-4"></i> Descargar Imagen
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-6 gap-4" id="schedule-grid"></div></div>
+
+                <!-- REFERENCIAS -->
+                <div id="tab-referencias" class="hidden tab-content animate-fade">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="references-list"></div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const jobData = {
+    oracle: {
+        title: "Backend Developer - Oracle",
+        description: "Se busca desarrollador con experiencia en Java y Spring Boot para proyectos financieros internacionales.",
+        email: "reclutamiento@oracle.com"
+    },
+    softtek: {
+        title: "QA Tester Jr. - Softtek",
+        description: "Participarás en pruebas funcionales y automatizadas para aplicaciones empresariales.",
+        email: "talento@softtek.com"
+    }
+};
+
+let currentJob = null;
+
+function openJobModal(jobKey) {
+    currentJob = jobData[jobKey];
+    document.getElementById("modalTitle").innerText = currentJob.title;
+    document.getElementById("modalDescription").innerText = currentJob.description;
+    document.getElementById("jobModal").classList.remove("hidden");
+    document.getElementById("jobModal").classList.add("flex");
+}
+
+function closeJobModal() {
+    document.getElementById("jobModal").classList.add("hidden");
+    document.getElementById("jobModal").classList.remove("flex");
+}
+
+function sendEmail() {
+    window.location.href = `mailto:${currentJob.email}?subject=Interesado en la vacante&body=Hola, estoy interesado en la vacante ${currentJob.title}`;
+}
+
+function sendCV() {
+    const file = document.getElementById("cvFile").files[0];
+    if (!file) {
+        alert("Por favor selecciona tu CV antes de enviar.");
+        return;
+    }
+    alert("CV listo para enviar (aquí puedes conectar con backend o Firebase).");
+}
+
+
+
+        // DATOS DEL HORARIO (EXTRAÍDOS DE TU FOTO)
+        const hours = ["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
+        const subjects = {
+            "MAT": { name: "Matemáticas para Ing.", prof: "Ivan J. Antón", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+            "SEG": { name: "Seguridad Inf.", prof: "Miguel Gutierrez", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+            "ARQ": { name: "Arq. de Software", prof: "Roberto Aguirre", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
+            "MET": { name: "Metodologías Proy.", prof: "Martin Melendez", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+            "IDI": { name: "Idiomas VI", prof: "Antonio Carrillo", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+            "UX": { name: "Exp. de Usuario", prof: "Miguel Gutierrez", color: "bg-pink-500/20 text-pink-400 border-pink-500/30" },
+            "ADT": { name: "Admón. del Tiempo", prof: "Miguel Gutierrez", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+        };
+
+        const scheduleRaw = [
+            ["", "MAT", "", "", ""], // 16:00
+            ["ADT", "MAT", "SEG", "IDI", "ARQ"], // 17:00
+            ["MET", "SEG", "ARQ", "IDI", "ARQ"], // 18:00
+            ["MET", "MAT", "UX", "IDI", "MET"], // 19:00
+            ["ARQ", "MAT", "UX", "ADT", "IDI"], // 20:00
+            ["ARQ", "SEG", "UX", "ADT", "IDI"], // 21:00
+        ];
+
+        // DATA
+        const referenceData = [
+            { id: 1, name: "REVALIDACIÓN EXTERNA", cost: 366 },
+            { id: 2, name: "CERTIFICADO PARCIAL DE ESTUDIOS", cost: 243 },
+            { id: 3, name: "CERTIFICACIÓN DE TITULO", cost: 610 },
+            { id: 4, name: "REIMPRESIÓN ESTADO DE CUENTA", cost: 48 },
+            { id: 5, name: "TOEFL ALUMNOS UTCH", cost: 1275 },
+            { id: 6, name: "PARLE CURSO INGLÉS ALUMNOS UTCH", cost: 625 },
+            { id: 7, name: "CONSTANCIA DE ESTUDIOS", cost: 48 },
+            { id: 8, name: "REEXPEDICIÓN DE CREDENCIAL", cost: 122 },
+            { id: 9, name: "CONSTANCIA DE CALIFICACIONES", cost: 48 },
+            { id: 10, name: "RELACION DE ESTUDIOS (KARDEX)", cost: 73 },
+            { id: 11, name: "ITEP PLUS", cost: 1658 },
+            { id: 12, name: "EXAMEN DE COLOCACION DE INGLÉS", cost: 345 },
+            { id: 13, name: "CONSTANCIA DE TRAMITE DE TITULACIÓN", cost: 48 },
+            { id: 14, name: "TITULACIÓN TSU", cost: 3072 },
+            { id: 15, name: "TITULACION INGENIERIA", cost: 4352 }
+        ];
+
+        const academicHistory = [
+            {
+                periodo: "ENE-ABR 2026 (ACTUAL)",
+                materias: [
+                    { nombre: "MATEMÁTICAS PARA INGENIERÍA I", docente: "DR. IVÁN JALIL ANTÓN", notas: ["X", "X", "X", "X"], asist: "11/1", final: "--", tipo: "ordinario" },
+                    { nombre: "METODOLOGÍAS DE PROYECTOS", docente: "ING. MARTÍN MELÉNDEZ", notas: ["X", "X", "X", "-"], asist: "4/1", final: "--", tipo: "ordinario" },
+                    { nombre: "ARQUITECTURAS DE SOFTWARE", docente: "ING. ROBERTO AGUIRRE", notas: ["X", "X", "X", "-"], asist: "3/0", final: "--", tipo: "ordinario" },
+                    { nombre: "EXPERIENCIA DE USUARIO", docente: "ING. MIGUEL GUTIERREZ", notas: ["X", "X", "X", "-"], asist: "0/0", final: "--", tipo: "ordinario" },
+                    { nombre: "SEGURIDAD INFORMÁTICA", docente: "ING. MIGUEL GUTIERREZ", notas: ["X", "X", "X", "-"], asist: "9/0", final: "--", tipo: "ordinario" },
+                    { nombre: "INGLÉS VI", docente: "MES. ANTONIO CARRILLO", notas: ["X", "X", "-", "-"], asist: "8/1", final: "--", tipo: "ordinario" }
+                ]
+            },
+            {
+                periodo: "SEPT-DIC 2025",
+                materias: [
+                    { nombre: "CÁLCULO DIFERENCIAL", docente: "DR. RIGOBERTO ORTEGA", notas: ["9.0", "10.0", "9.0", "-"], asist: "22/0", final: "AU", tipo: "ordinario" },
+                    { nombre: "SISTEMAS OPERATIVOS", docente: "ING. GUILLERMO ARRIETA", notas: ["10.0", "10.0", "10.0", "10.0"], asist: "24/0", final: "AU", tipo: "ordinario" },
+                    { nombre: "INGLÉS III", docente: "MM. CONSUELO TORRES", notas: ["8.0", "9.0", "9.0", "8.0"], asist: "18/2", final: "DE", tipo: "ordinario" }
+                ]
+            },
+            {
+                periodo: "ENE-ABR 2025",
+                materias: [
+                    { nombre: "ESTÁNDARES Y MÉTRICAS", docente: "ING. RAÚL ESCALANTE", notas: [10, 9, 10, "-"], asist: "22/0", final: "E", tipo: "ordinario" },
+                    { nombre: "ESTRUCTURA DE DATOS", docente: "MSC. ALEJANDRO HURTADO", notas: [10, 10, 10, 10], asist: "24/0", final: "E", tipo: "ordinario" },
+                    { nombre: "INGLÉS IV", docente: "MM. KRISTEL NEVAREZ", notas: [7, 7, 7, "-"], asist: "20/6", final: "R", tipo: "recuperacion" }
+                ]
+            }
+        ];
+
+        // LOGIC
+        function attemptLogin() {
+            const user = document.getElementById('login-user').value;
+            if (user === '6523150059') {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-wrapper').classList.remove('hidden');
+                initApp();
+            }
+        }
+
+        function initApp() {
+            renderReferences();
+            renderSchedule();
+            renderGradeTabs();
+            lucide.createIcons();
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active', 'text-gray-400');
+                if (item.id === `nav-${tabId}`) item.classList.add('active');
+                else item.classList.add('text-gray-400');
+            });
+            const titles = { inicio: "Dashboard", perfil: "Expediente", horario: "Horario", referencias: "Trámites", becas: "Becas y Apoyos", empleo: "Bolsa de Empleo", psicologia: "Psicología", cuenta: "Mi Cuenta" };
+            document.getElementById('tab-title').innerText = titles[tabId] || "UTCH Portal";
+            lucide.createIcons();
+        }
+
+        function renderGradeTabs() {
+            const container = document.getElementById('period-tabs-container');
+            container.innerHTML = academicHistory.map((h, index) => `
+                <button onclick="changeGradePeriod(${index})" class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all glass border border-utch-light-green text-white">
+                    ${h.periodo}
+                </button>
+            `).join('');
+            changeGradePeriod(0);
+        }
+
+        function changeGradePeriod(index) {
+            const data = academicHistory[index];
+            const body = document.getElementById('grades-history-body');
+            body.innerHTML = data.materias.map(m => `
+                <tr class="hover:bg-white/[0.02] transition-colors">
+                    <td class="px-8 py-5">
+                        <p class="text-sm font-bold text-white">${m.nombre}</p>
+                        <p class="text-[10px] text-gray-500 uppercase mt-1">${m.docente}</p>
+                    </td>
+                    <td class="px-4 py-5 text-center font-black text-xs text-gray-300">${m.notas[0]}</td>
+                    <td class="px-4 py-5 text-center font-black text-xs text-gray-300">${m.notas[1]}</td>
+                    <td class="px-4 py-5 text-center font-black text-xs text-gray-300">${m.notas[2]}</td>
+                    <td class="px-4 py-5 text-center font-black text-xs text-utch-light-green italic">${m.asist}</td>
+                    <td class="px-8 py-5 text-center"><span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase grade-ordinario">${m.final}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderReferences() {
+            const list = document.getElementById('references-list');
+            list.innerHTML = referenceData.map(ref => `
+                <div onclick="openModal(${ref.id})" class="glass p-6 rounded-3xl cursor-pointer hover:border-utch-light-green/40 transition-all relative overflow-hidden group">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">#${ref.id}</span>
+                        <i data-lucide="printer" class="w-4 h-4 text-gray-600 group-hover:text-utch-light-green"></i>
+                    </div>
+                    <h4 class="font-black text-xs text-white uppercase mb-2 pr-4">${ref.name}</h4>
+                    <p class="text-utch-light-green font-black text-lg">$${ref.cost.toFixed(2)}</p>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function openModal(id) {
+            const selected = referenceData.find(r => r.id === id);
+            document.getElementById('modal-title').innerText = selected.name;
+            document.getElementById('modal-cost').innerText = `$${selected.cost.toFixed(2)}`;
+            document.getElementById('reference-modal').classList.remove('hidden');
+            document.getElementById('reference-modal').classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('reference-modal').classList.add('hidden');
+        }
+
+        function confirmGeneration() {
+            const btn = document.getElementById('modal-btn');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Generando...`;
+            lucide.createIcons();
+            setTimeout(() => {
+                closeModal();
+                btn.innerHTML = `<i data-lucide="printer" class="w-5 h-5"></i> Generar Referencia PDF`;
+                lucide.createIcons();
+            }, 1500);
+        }
+
+        function renderSchedule() {
+    const grid = document.getElementById('schedule-grid');
+    grid.innerHTML = "";
+
+    const days = ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"];
+
+    // HEADER
+    days.forEach(day => {
+        grid.innerHTML += `
+            <div class="text-center text-[11px] font-black tracking-widest uppercase ${day === "HORA" ? "text-gray-600" : "text-gray-400"} pb-4">
+                ${day}
+            </div>
+        `;
+    });
+
+    scheduleRaw.forEach((row, i) => {
+
+        // HORA
+        grid.innerHTML += `
+            <div class="schedule-hour text-center italic">
+                ${hours[i]}
+            </div>
+        `;
+
+        // MATERIAS
+        row.forEach(code => {
+
+            if (code === "") {
+                grid.innerHTML += `
+                    <div class="schedule-card bg-white/[0.02]"></div>
+                `;
+                return;
+            }
+
+            const sub = subjects[code];
+
+            grid.innerHTML += `
+                <div class="schedule-card ${sub.color}">
+                    <div class="text-[12px] font-black tracking-wide uppercase">
+                        ${code}
+                    </div>
+                    <div class="text-[10px] opacity-70 mt-1">
+                        ${sub.name}
+                    </div>
+                </div>
+            `;
+        });
+    });
+}
+
+    </script>
+</body>
+</html>
